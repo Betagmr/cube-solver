@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <arg name="robot_ip"/>
+    <arg name="prefix" default="/"/>
+    <arg name="sufix" default="/"/>
+
+    <node name="rg2_control_node" pkg="rg2_driver" type="DriverActionServer.py" args="$(arg robot_ip) $(arg prefix) $(arg sufix)">
+        <param name="robot_ip" value="$(arg robot_ip)" />
+    </node>
+    <node name="rg2_joint_state_publisher" pkg="rg2_driver" type="GripperState.py" args="$(arg robot_ip) $(arg prefix) $(arg sufix)"/>
+</launch>
