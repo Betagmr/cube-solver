@@ -1,11 +1,4 @@
 <?xml version="1.0"?>
 <launch>
-  <param name="robot_description" textfile="$(find launcher_robots_lab_robotica)/urdf/doble_ur3e_205_206.urdf"/>
-
-  <include file="$(find ur3e_dual_205_206_moveit_config)/launch/ur3e_205_206_moveit.launch"/>
-
-  <!-- Convert joint states to /tf tranforms -->
-  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
-
+  <include file="$(find ur3e_dual_205_206_moveit_config)/launch/ur3e_205_206_moveit_sim.launch"/>
 </launch>
-
