@@ -29,8 +29,8 @@ class RobotArm:
         )
 
         self.action_client = SimpleActionClient(
-            f"/{robot_id}/sequence_move_group",
-            # f"/{robot_id}/scaled_pos_joint_traj_controller/follow_joint_trajectory",
+            # f"/{robot_id}/sequence_move_group",
+            f"/{robot_id}/scaled_pos_joint_traj_controller/follow_joint_trajectory",
             FollowJointTrajectoryAction
         )
  
@@ -79,10 +79,10 @@ class RobotArm:
                 result = self.move_clamp(anchura, fuerza)
             else:
                 angulo = action[0]
-                result = self.rotate_clamp(angulo, 3)
+                result = self.rotate_clamp(angulo, 2)
             
             print(result)
-            time.sleep(2)
+            time.sleep(1)
  
 
 class ControlRobot:
@@ -96,10 +96,11 @@ class ControlRobot:
         self.planning_scene = PlanningSceneInterface()
         self.robot_commander = RobotCommander()
  
-        pose_suelo = PoseStamped()
-        pose_suelo.header.frame_id = self.robot_commander.get_planning_frame()
-        pose_suelo.pose.position.z = -0.011
-        self.planning_scene.add_box("suelo", pose_suelo, (3, 3, 0.02))
+        self.pose_suelo = PoseStamped()
+        self.pose_suelo.header.frame_id = self.robot_commander.get_planning_frame()
+        self.pose_suelo.pose.position.z = -0.011
+        self.planning_scene.add_box("suelo", self.pose_suelo, (3, 3, 0.02))
+        
 
     def recoger_cubo(self):
         self.left_arm.execute_secuence(
@@ -108,9 +109,23 @@ class ControlRobot:
                 [0.40443098545074463, -0.9778804940036316, 0.8503282705890101, -1.4449669879725953, -1.564664665852682, 0.357255756855011],
                 [0.404244065284729, -0.9792840641788025, 1.090346638356344, -1.6836816273131312, -1.5647137800799769, 0.358335018157959],
                 [30, 40],
+            ]
+        )
+
+        new_pose = self.pose_suelo
+        new_pose.pose.position.x  = 0.35
+        new_pose.pose.position.y  = 0.29
+        new_pose.pose.position.z  = 0.03501
+
+        self.planning_scene.add_box("cubo", new_pose,(0.07, 0.07, 0.07))
+        touch_links = self.robot_commander.get_link_names(group="gripper_205")
+        self.planning_scene.attach_box("tool0_205", "cubo", touch_links=touch_links)
+
+        self.left_arm.execute_secuence(
+            [
                 [0.40443098545074463, -0.9778804940036316, 0.8503282705890101, -1.4449669879725953, -1.564664665852682, 0.357255756855011],
                 [0.46085554361343384, -0.7338349980166932, 1.6405442396747034, -4.082707067529196, -2.000608269368307, 0.006899356842041016],
-                [0.44173359870910645, -0.27442999303851323, 0.6156037489520472, -3.466997285882467, -2.019162956868307, 4.89973826915957e-05]
+                [0.5569771528244019, -0.2882874769023438, 1.1102913061725062, -3.9474107227721156, -2.136270348225729, 0.000304434826830402]
             ]
         )
 
@@ -118,8 +133,8 @@ class ControlRobot:
         self.right_arm.execute_secuence(
             [
                 [1.058468222618103, -1.8820544681944789, 0.8497050444232386, -0.5394669336131592, -1.5684707800494593, -2.1022632757769983],
-                [0.06274263560771942, -1.2139890950969239, 0.6285613218890589, -0.9864318531802674, -1.5671222845660608, -3.009000841771261],
-                [0.47338834404945374, -0.6877903503230591, 0.6417611281024378, 0.039393706912658644, -1.105957333241598, -3.1479156653033655],
+                [0.06274263560771942, -1.2139890950969239, 0.6285613218890589, -0.9864318531802674, -1.5671222845660608, 1.9073486328125e-06],
+                # [0.47338834404945374, -0.6877903503230591, 0.6417611281024378, 0.039393706912658644, -1.105957333241598, 1.9073486328125e-06],
                 [0.5036637187004089, -0.7917526525310059, 0.8734982649432581, -0.0368078512004395, -1.0687573591815394, 1.9073486328125e-06],
             ]
         )
@@ -128,8 +143,8 @@ class ControlRobot:
         self.right_arm.execute_secuence(
             [
                 [1.058468222618103, -1.8820544681944789, 0.8497050444232386, -0.5394669336131592, -1.5684707800494593, -2.1022632757769983],
-                [1.3109047412872314, -1.2469163698009034, 0.204935375844137, -0.5298386377147217, -1.56775409380068, -1.8200209776507776],
-                [1.313001275062561, -1.337524102335312, 0.4287937323199671, -0.6633060735515137, -1.5677087942706507, -1.817707363759176],
+                [1.6187512874603271, -1.3900185090354462, 0.8330953756915491, -1.0153497618487854, -1.5672791639911097, 1.6279391050338745],
+                [1.618713617324829, -1.4459569540670891, 1.0238564650165003, -1.1501685839942475, -1.5672124067889612, 1.6283748149871826]
             ]
         )
 
@@ -156,9 +171,11 @@ class ControlRobot:
 
         self.right_arm.execute_secuence(
             [
-                [30, 40],
+                [40, 40],
+                [30, 10],
                 [angulo],
-                [100, 3]
+                [40, 3],
+                [100, 40]
             ]
         )
 
@@ -169,7 +186,7 @@ class ControlRobot:
     
         self.right_arm.execute_secuence(
             [
-                [30, 40],
+                [30, 10],
                 [angulo],
                 [100, 3]
             ]
@@ -180,9 +197,39 @@ class ControlRobot:
     def invertir_orientacion(self):
         self.right_arm.execute_secuence(
             [
-                [30, 40],
-                [pi],
-                [100, 3] 
+                [40, 40],
+                [30, 10],
+            ]
+        )
+
+        time.sleep(1)
+
+        self.left_arm.execute_secuence(
+            [
+                [40, 3],
+                [100, 40]
+            ]
+        )
+
+        time.sleep(1)
+
+        self.right_arm.rotate_clamp(pi / 2, 5)
+
+        time.sleep(1)
+
+        self.left_arm.execute_secuence(
+            [
+                [40, 40],
+                [30, 10]
+            ]
+        )
+
+        time.sleep(1)
+
+        self.right_arm.execute_secuence(
+            [
+                [40, 3],
+                [100, 40]
             ]
         )
 
@@ -191,12 +238,21 @@ class ControlRobot:
         orientacion = 1
         actual_pos = 0
 
-        self.recoger_cubo()
+        # self.recoger_cubo()
 
-        for i in solve_path.split(" "):
-            position = i[0]
-            is_inverted = int(i.find("'") > -1)
-            is_double = i.find("2") > -1
+        self.right_arm.execute_secuence([
+            [1.058468222618103, -1.8820544681944789, 0.8497050444232386, -0.5394669336131592, -1.5684707800494593, -2.1022632757769983],
+            # [1.3109047412872314, -1.2469163698009034, 0.204935375844137, -0.5298386377147217, -1.56775409380068, -1.8200209776507776],
+            # [1.313001275062561, -1.337524102335312, 0.4287937323199671, -0.6633060735515137, -1.5677087942706507, -1.817707363759176],
+        ])
+
+        for index in solve_path.split(" "):
+
+            index = input("Inserte la jugada: ")
+
+            position = index[0]
+            is_inverted = 1 if int(index.find("'") > -1) == 0 else -1
+            is_double = index.find("2") > -1
         
             print(f"{position=} {is_inverted=} {is_double=}")
         
@@ -214,8 +270,8 @@ class ControlRobot:
                 self.volver_centro_arriba()
         
 
-            if position in ["U", "D"]:
-                position_index = 1 if ["U", "D"].index(position) == 0 else -1
+            if position in ["D", "U"]:
+                position_index = 1 if ["D", "U"].index(position) == 0 else -1
 
                 if position_index != orientacion:
                         self.mover_arriba()
@@ -233,3 +289,7 @@ class ControlRobot:
 if __name__ == '__main__':
     control_robot = ControlRobot()
     control_robot.move_secuence("D2 R' D' F2 B D R2 D2 R' F2 D' F2 U' B2 L2 U2 D R2 U")
+    # print("Robot izquierda: ")
+    # print(control_robot.left_arm.move_group.get_current_joint_values())
+    # print("Robot derecha: ")
+    # print(control_robot.right_arm.move_group.get_current_joint_values())
