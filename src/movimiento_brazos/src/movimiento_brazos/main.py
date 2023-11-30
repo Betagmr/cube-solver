@@ -13,15 +13,16 @@ from actionlib import SimpleActionClient
 from actionlib_msgs.msg import GoalStatus
 from math import pi
 
+import positions
 
 
 class RobotArm:
     def __init__(self, robot_id: str) -> None:
         self.move_group = MoveGroupCommander(robot_id)
- 
+
         self.move_group.set_planning_time(10)
         self.move_group.set_num_planning_attempts(5)
- 
+
         self.publicador_pinza = rospy.Publisher(
             f"/{robot_id}/rg2_action_server/goal",
             GripperCommandActionGoal,
@@ -31,19 +32,19 @@ class RobotArm:
         self.action_client = SimpleActionClient(
             # f"/{robot_id}/sequence_move_group",
             f"/{robot_id}/scaled_pos_joint_traj_controller/follow_joint_trajectory",
-            FollowJointTrajectoryAction
+            FollowJointTrajectoryAction,
         )
- 
+
     def move_to_position(self, pos_values: list) -> bool:
         return self.move_group.go(pos_values)
- 
+
     def move_clamp(self, anchura: float, fuerza: float) -> None:
         msg_pinza = GripperCommandActionGoal()
         msg_pinza.goal.command.position = anchura
         msg_pinza.goal.command.max_effort = fuerza
- 
+
         self.publicador_pinza.publish(msg_pinza)
- 
+
     def rotate_clamp(self, angle: float, time: float) -> bool:
         """_summary_
 
@@ -55,7 +56,7 @@ class RobotArm:
         """
         conf_actual = self.move_group.get_current_state()
         punto_traj = JointTrajectoryPoint()
-        punto_traj.positions = list(conf_actual.joint_state.position[12:17])+[angle]
+        punto_traj.positions = list(conf_actual.joint_state.position[12:17]) + [angle]
         punto_traj.time_from_start = rospy.Duration(secs=time)
         traj = JointTrajectory()
         traj.points.append(punto_traj)
@@ -67,9 +68,9 @@ class RobotArm:
 
         if result == GoalStatus.SUCCEEDED:
             return True
-        
+
         return False
-    
+
     def execute_secuence(self, action_list):
         for action in action_list:
             if len(action) == 6:
@@ -80,213 +81,182 @@ class RobotArm:
             else:
                 angulo = action[0]
                 result = self.rotate_clamp(angulo, 2)
-            
+
             print(result)
             time.sleep(1)
- 
+
 
 class ControlRobot:
     def __init__(self) -> None:
         rospy.init_node("robot_controller", anonymous=True)
         rospy.sleep(2)
- 
+
         self.left_arm = RobotArm("robot_205")
         self.right_arm = RobotArm("robot_206")
- 
+
         self.planning_scene = PlanningSceneInterface()
         self.robot_commander = RobotCommander()
- 
+
         self.pose_suelo = PoseStamped()
         self.pose_suelo.header.frame_id = self.robot_commander.get_planning_frame()
         self.pose_suelo.pose.position.z = -0.011
         self.planning_scene.add_box("suelo", self.pose_suelo, (3, 3, 0.02))
-        
 
     def recoger_cubo(self):
         self.left_arm.execute_secuence(
             [
-                [100, 3],
-                [0.40443098545074463, -0.9778804940036316, 0.8503282705890101, -1.4449669879725953, -1.564664665852682, 0.357255756855011],
-                [0.404244065284729, -0.9792840641788025, 1.090346638356344, -1.6836816273131312, -1.5647137800799769, 0.358335018157959],
-                [30, 40],
+                *positions.SOLTAR_RAPIDO_FLOJO,
+                positions.I_RECOGER_P1,
+                positions.I_RECOGER_P2,
+                *positions.AGARRE_RAPIDO_FUERTE,
             ]
         )
 
         new_pose = self.pose_suelo
-        new_pose.pose.position.x  = 0.35
-        new_pose.pose.position.y  = 0.29
-        new_pose.pose.position.z  = 0.03501
+        new_pose.pose.position.x = 0.35
+        new_pose.pose.position.y = 0.29
+        new_pose.pose.position.z = 0.03501
 
-        self.planning_scene.add_box("cubo", new_pose,(0.07, 0.07, 0.07))
+        self.planning_scene.add_box("cubo", new_pose, (0.07, 0.07, 0.07))
         touch_links = self.robot_commander.get_link_names(group="gripper_205")
         self.planning_scene.attach_box("tool0_205", "cubo", touch_links=touch_links)
 
         self.left_arm.execute_secuence(
             [
-                [0.40443098545074463, -0.9778804940036316, 0.8503282705890101, -1.4449669879725953, -1.564664665852682, 0.357255756855011],
-                [0.46085554361343384, -0.7338349980166932, 1.6405442396747034, -4.082707067529196, -2.000608269368307, 0.006899356842041016],
-                [0.5569771528244019, -0.2882874769023438, 1.1102913061725062, -3.9474107227721156, -2.136270348225729, 0.000304434826830402]
+                positions.I_RECOGER_P1,
+                positions.I_RECOGER_P3,
+                positions.I_RECOGER_P4,
             ]
         )
 
     def mover_abajo(self):
         self.right_arm.execute_secuence(
             [
-                [1.058468222618103, -1.8820544681944789, 0.8497050444232386, -0.5394669336131592, -1.5684707800494593, -2.1022632757769983],
-                [0.06274263560771942, -1.2139890950969239, 0.6285613218890589, -0.9864318531802674, -1.5671222845660608, 1.9073486328125e-06],
-                # [0.47338834404945374, -0.6877903503230591, 0.6417611281024378, 0.039393706912658644, -1.105957333241598, 1.9073486328125e-06],
-                [0.5036637187004089, -0.7917526525310059, 0.8734982649432581, -0.0368078512004395, -1.0687573591815394, 1.9073486328125e-06],
+                positions.D_REPOSO,
+                positions.D_INFERIOR_APROXIMACION,
+                positions.D_INFERIOR_AGARRE
+            ]
+        )
+
+    def volver_abajo(self):
+        self.right_arm.execute_secuence(
+            [
+                positions.D_INFERIOR_APROXIMACION,
+                positions.D_REPOSO,
             ]
         )
 
     def mover_arriba(self):
         self.right_arm.execute_secuence(
             [
-                [1.058468222618103, -1.8820544681944789, 0.8497050444232386, -0.5394669336131592, -1.5684707800494593, -2.1022632757769983],
-                [1.6187512874603271, -1.3900185090354462, 0.8330953756915491, -1.0153497618487854, -1.5672791639911097, 1.6279391050338745],
-                [1.618713617324829, -1.4459569540670891, 1.0238564650165003, -1.1501685839942475, -1.5672124067889612, 1.6283748149871826]
+                positions.D_REPOSO,
+                positions.D_SUPERIOR_APROXIMACION,
+                positions.D_SUPERIOR_AGARRE,
             ]
         )
 
-    def volver_centro_arriba(self):
+    def volver_arriba(self):
         self.right_arm.execute_secuence(
             [
-                [1.3109047412872314, -1.2469163698009034, 0.204935375844137, -0.5298386377147217, -1.56775409380068, -1.8200209776507776],
-                [1.058468222618103, -1.8820544681944789, 0.8497050444232386, -0.5394669336131592, -1.5684707800494593, -2.1022632757769983],
+                positions.D_SUPERIOR_APROXIMACION,
+                positions.D_REPOSO,
             ]
         )
 
-    def volver_centro_abajo(self):
-        self.right_arm.execute_secuence(
-            [
-                [0.47338834404945374, -0.6877903503230591, 0.6417611281024378, 0.039393706912658644, -1.105957333241598, -3.1479156653033655],
-                [0.06274263560771942, -1.2139890950969239, 0.6285613218890589, -0.9864318531802674, -1.5671222845660608, -3.009000841771261],
-                [1.058468222618103, -1.8820544681944789, 0.8497050444232386, -0.5394669336131592, -1.5684707800494593, -2.1022632757769983],
-            ]
-        )
 
     def hacer_giro(self, is_inverted, is_double):
-        angulo = pi if is_double else pi/2
+        angulo = pi if is_double else pi / 2
         angulo = angulo * is_inverted
 
         self.right_arm.execute_secuence(
             [
-                [40, 40],
-                [30, 10],
+                *positions.AGARRE_RAPIDO_FLOJO,
                 [angulo],
-                [40, 3],
-                [100, 40]
+                *positions.SOLTAR_RAPIDO_FLOJO,
             ]
         )
 
     def rotar_caras(self, actual, posicion):
-        angulo = (posicion - actual) * pi/2
-    
-        self.left_arm.execute_secuence([[100, 3]])
-    
-        self.right_arm.execute_secuence(
-            [
-                [30, 10],
-                [angulo],
-                [100, 3]
-            ]
-        ) 
-    
-        self.left_arm.execute_secuence([[30, 40]])
+        angulo = (posicion - actual) * pi / 2
 
-    def invertir_orientacion(self):
-        self.right_arm.execute_secuence(
-            [
-                [40, 40],
-                [30, 10],
-            ]
-        )
-
+        self.right_arm.execute_secuence(positions.AGARRE_RAPIDO_FUERTE)
         time.sleep(1)
 
-        self.left_arm.execute_secuence(
-            [
-                [40, 3],
-                [100, 40]
-            ]
-        )
+        self.left_arm.execute_secuence(positions.SOLTAR_RAPIDO_FLOJO)
+        time.sleep(1)
 
+        self.right_arm.execute_secuence([[angulo]])
+        time.sleep(1)
+
+        self.left_arm.execute_secuence(positions.AGARRE_RAPIDO_FLOJO)
+        time.sleep(1)
+
+        self.right_arm.execute_secuence(positions.SOLTAR_RAPIDO_FLOJO)
+
+    def invertir_orientacion(self):
+        self.right_arm.execute_secuence(positions.AGARRE_RAPIDO_FUERTE)
+        time.sleep(1)
+
+        self.left_arm.execute_secuence(positions.SOLTAR_RAPIDO_FLOJO)
         time.sleep(1)
 
         self.right_arm.rotate_clamp(pi / 2, 5)
 
+        self.left_arm.execute_secuence(positions.AGARRE_RAPIDO_FUERTE)
         time.sleep(1)
 
-        self.left_arm.execute_secuence(
-            [
-                [40, 40],
-                [30, 10]
-            ]
-        )
-
+        self.right_arm.execute_secuence(positions.SOLTAR_RAPIDO_FLOJO)
         time.sleep(1)
 
-        self.right_arm.execute_secuence(
-            [
-                [40, 3],
-                [100, 40]
-            ]
-        )
-
- 
     def move_secuence(self, solve_path):
         orientacion = 1
         actual_pos = 0
 
-        # self.recoger_cubo()
+        if (
+            self.right_arm.move_group.get_current_joint_values()
+            != positions.I_RECOGER_P4
+        ):
+            self.recoger_cubo()
 
-        self.right_arm.execute_secuence([
-            [1.058468222618103, -1.8820544681944789, 0.8497050444232386, -0.5394669336131592, -1.5684707800494593, -2.1022632757769983],
-            # [1.3109047412872314, -1.2469163698009034, 0.204935375844137, -0.5298386377147217, -1.56775409380068, -1.8200209776507776],
-            # [1.313001275062561, -1.337524102335312, 0.4287937323199671, -0.6633060735515137, -1.5677087942706507, -1.817707363759176],
-        ])
+        self.right_arm.execute_secuence([positions.D_REPOSO])
 
         for index in solve_path.split(" "):
-
             index = input("Inserte la jugada: ")
 
             position = index[0]
-            is_inverted = 1 if int(index.find("'") > -1) == 0 else -1
+            direction = -1 if index.find("'") > -1 else 1
             is_double = index.find("2") > -1
-        
-            print(f"{position=} {is_inverted=} {is_double=}")
-        
+
+            print(f"{position=} {direction=} {is_double=}")
+
             if position in ["L", "F", "R", "B"]:
                 position_index = ["L", "F", "R", "B"].index(position)
-                
+
                 if position_index != actual_pos:
-                        self.mover_abajo()
-                        self.rotar_caras(position_index, actual_pos)
-                        actual_pos = actual_pos
-                        self.volver_centro_abajo()
-        
+                    self.mover_abajo()
+                    self.rotar_caras(position_index, actual_pos)
+                    self.volver_abajo()
+                    actual_pos = actual_pos
+
                 self.mover_arriba()
-                self.hacer_giro(is_inverted * orientacion, is_double)
-                self.volver_centro_arriba()
-        
+                self.hacer_giro(direction * orientacion, is_double)
+                self.volver_arriba()
 
             if position in ["D", "U"]:
                 position_index = 1 if ["D", "U"].index(position) == 0 else -1
 
                 if position_index != orientacion:
-                        self.mover_arriba()
-                        self.invertir_orientacion()
-                        self.volver_centro_arriba()
-                        orientacion = position_index
-        
-                self.mover_abajo()  
-                self.hacer_giro(is_inverted, is_double)
-                self.volver_centro_abajo()
-    
+                    self.mover_arriba()
+                    self.invertir_orientacion()
+                    self.volver_arriba()
+                    orientacion = position_index
+
+                self.mover_abajo()
+                self.hacer_giro(direction, is_double)
+                self.volver_abajo()
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     control_robot = ControlRobot()
     control_robot.move_secuence("D2 R' D' F2 B D R2 D2 R' F2 D' F2 U' B2 L2 U2 D R2 U")
     # print("Robot izquierda: ")
