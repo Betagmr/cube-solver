@@ -176,31 +176,15 @@ class ControlRobot:
             ]
         )
 
-    def rotar_caras(self, actual, posicion):
-        angulo = (posicion - actual) * pi / 2
-
+    def rotar_caras(self, angulo, tiempo):
         self.right_arm.execute_secuence(positions.AGARRE_RAPIDO_FUERTE)
         time.sleep(1)
 
         self.left_arm.execute_secuence(positions.SOLTAR_RAPIDO_FLOJO)
         time.sleep(1)
 
-        self.right_arm.execute_secuence([[angulo]])
+        self.right_arm.rotate_clamp(angulo, tiempo)
         time.sleep(1)
-
-        self.left_arm.execute_secuence(positions.AGARRE_RAPIDO_FLOJO)
-        time.sleep(1)
-
-        self.right_arm.execute_secuence(positions.SOLTAR_RAPIDO_FLOJO)
-
-    def invertir_orientacion(self):
-        self.right_arm.execute_secuence(positions.AGARRE_RAPIDO_FUERTE)
-        time.sleep(1)
-
-        self.left_arm.execute_secuence(positions.SOLTAR_RAPIDO_FLOJO)
-        time.sleep(1)
-
-        self.right_arm.rotate_clamp(pi / 2, 5)
 
         self.left_arm.execute_secuence(positions.AGARRE_RAPIDO_FUERTE)
         time.sleep(1)
@@ -234,7 +218,8 @@ class ControlRobot:
 
                 if position_index != actual_pos:
                     self.mover_abajo()
-                    self.rotar_caras(position_index, actual_pos)
+                    angulo = (position_index - actual_pos) * pi / 2
+                    self.rotar_caras(angulo, 5)
                     self.volver_abajo()
                     actual_pos = actual_pos
 
@@ -247,7 +232,7 @@ class ControlRobot:
 
                 if position_index != orientacion:
                     self.mover_arriba()
-                    self.invertir_orientacion()
+                    self.rotar_caras(pi / 2, 5)
                     self.volver_arriba()
                     orientacion = position_index
 
@@ -255,6 +240,13 @@ class ControlRobot:
                 self.hacer_giro(direction, is_double)
                 self.volver_abajo()
 
+            if position == "r":
+                print("Las posiciones de la derecha son: ")
+                print(self.right_arm.move_group.get_current_joint_values())
+
+            if position == "l":
+                print("Las posiciones de la izquierda son: ")
+                print(self.left_arm.move_group.get_current_joint_values())
 
 if __name__ == "__main__":
     control_robot = ControlRobot()
