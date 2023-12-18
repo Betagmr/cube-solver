@@ -1,89 +1,13 @@
-from moveit_commander import MoveGroupCommander
 from moveit_commander import PlanningSceneInterface
 from moveit_commander import RobotCommander
 from geometry_msgs.msg import PoseStamped
-from tf.transformations import quaternion_from_euler
-from control_msgs.msg import GripperCommandActionGoal
 import rospy
 import time
-from control_msgs.msg import FollowJointTrajectoryAction, FollowJointTrajectoryGoal
-from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
-from std_msgs.msg import Duration
-from actionlib import SimpleActionClient
-from actionlib_msgs.msg import GoalStatus
 from math import pi
 
 import positions
+from robot_arm import RobotArm
 
-
-class RobotArm:
-    def __init__(self, robot_id: str) -> None:
-        self.move_group = MoveGroupCommander(robot_id)
-
-        self.move_group.set_planning_time(10)
-        self.move_group.set_num_planning_attempts(5)
-
-        self.publicador_pinza = rospy.Publisher(
-            f"/{robot_id}/rg2_action_server/goal",
-            GripperCommandActionGoal,
-            queue_size=10,
-        )
-
-        self.action_client = SimpleActionClient(
-            # f"/{robot_id}/sequence_move_group",
-            f"/{robot_id}/scaled_pos_joint_traj_controller/follow_joint_trajectory",
-            FollowJointTrajectoryAction,
-        )
-
-    def move_to_position(self, pos_values: list) -> bool:
-        return self.move_group.go(pos_values)
-
-    def move_clamp(self, anchura: float, fuerza: float) -> None:
-        msg_pinza = GripperCommandActionGoal()
-        msg_pinza.goal.command.position = anchura
-        msg_pinza.goal.command.max_effort = fuerza
-
-        self.publicador_pinza.publish(msg_pinza)
-
-    def rotate_clamp(self, angle: float, time: float) -> bool:
-        """_summary_
-
-        Args:
-            angle (float): Configuración ABSOLUTA de la última articulación en radianes.
-
-        Returns:
-            bool: _description_
-        """
-        conf_actual = self.move_group.get_current_state()
-        punto_traj = JointTrajectoryPoint()
-        punto_traj.positions = list(conf_actual.joint_state.position[12:17]) + [angle]
-        punto_traj.time_from_start = rospy.Duration(secs=time)
-        traj = JointTrajectory()
-        traj.points.append(punto_traj)
-        traj.joint_names = conf_actual.joint_state.name[12:18]
-        goal = FollowJointTrajectoryGoal()
-        goal.trajectory = traj
-
-        result = self.action_client.send_goal_and_wait(goal)
-
-        if result == GoalStatus.SUCCEEDED:
-            return True
-
-        return False
-
-    def execute_secuence(self, action_list):
-        for action in action_list:
-            if len(action) == 6:
-                result = self.move_to_position(action)
-            elif len(action) == 2:
-                anchura, fuerza = action
-                result = self.move_clamp(anchura, fuerza)
-            else:
-                angulo = action[0]
-                result = self.rotate_clamp(angulo, 2)
-
-            print(result)
-            time.sleep(1)
 
 
 class ControlRobot:
@@ -91,8 +15,10 @@ class ControlRobot:
         rospy.init_node("robot_controller", anonymous=True)
         rospy.sleep(2)
 
-        self.left_arm = RobotArm("robot_205")
-        self.right_arm = RobotArm("robot_206")
+        self.delay = 1
+
+        self.left_arm = RobotArm("robot_205", self.delay)
+        self.right_arm = RobotArm("robot_206", self.delay)
 
         self.planning_scene = PlanningSceneInterface()
         self.robot_commander = RobotCommander()
@@ -164,33 +90,33 @@ class ControlRobot:
         )
 
 
-    def hacer_giro(self, is_inverted, is_double):
+    def hacer_giro(self, is_inverted, is_double, ofset = 0):
         angulo = pi if is_double else pi / 2
         angulo = angulo * is_inverted
 
         self.right_arm.execute_secuence(
             [
-                *positions.AGARRE_RAPIDO_FLOJO,
-                [angulo],
-                *positions.SOLTAR_RAPIDO_FLOJO,
+                *positions.AGGARE_SIN_COLISION,
+                [angulo + ofset],
+                *positions.SOLTAR_SIN_COLISION,
             ]
         )
 
     def rotar_caras(self, angulo, tiempo):
         self.right_arm.execute_secuence(positions.AGARRE_RAPIDO_FUERTE)
-        time.sleep(1)
+        time.sleep(self.delay)
 
         self.left_arm.execute_secuence(positions.SOLTAR_RAPIDO_FLOJO)
-        time.sleep(1)
+        time.sleep(self.delay)
 
         self.right_arm.rotate_clamp(angulo, tiempo)
-        time.sleep(1)
+        time.sleep(self.delay)
 
         self.left_arm.execute_secuence(positions.AGARRE_RAPIDO_FUERTE)
-        time.sleep(1)
+        time.sleep(self.delay)
 
         self.right_arm.execute_secuence(positions.SOLTAR_RAPIDO_FLOJO)
-        time.sleep(1)
+        time.sleep(self.delay)
 
     def move_secuence(self, solve_path):
         orientacion = 1
@@ -205,7 +131,7 @@ class ControlRobot:
         self.right_arm.execute_secuence([positions.D_REPOSO])
 
         for index in solve_path.split(" "):
-            index = input("Inserte la jugada: ")
+            # index = input("Inserte la jugada: ")
 
             position = index[0]
             direction = -1 if index.find("'") > -1 else 1
@@ -218,13 +144,16 @@ class ControlRobot:
 
                 if position_index != actual_pos:
                     self.mover_abajo()
-                    angulo = (position_index - actual_pos) * pi / 2
+                    rotacion = position_index - actual_pos
+                    rotacion = -rotacion if rotacion > 0 else rotacion 
+
+                    angulo = rotacion * orientacion * pi / 2
                     self.rotar_caras(angulo, 5)
                     self.volver_abajo()
-                    actual_pos = actual_pos
+                    actual_pos = position_index
 
                 self.mover_arriba()
-                self.hacer_giro(direction * orientacion, is_double)
+                self.hacer_giro(direction, is_double, 0.12)
                 self.volver_arriba()
 
             if position in ["D", "U"]:
@@ -232,7 +161,7 @@ class ControlRobot:
 
                 if position_index != orientacion:
                     self.mover_arriba()
-                    self.rotar_caras(pi / 2, 5)
+                    self.rotar_caras(pi, 5)
                     self.volver_arriba()
                     orientacion = position_index
 
@@ -250,7 +179,8 @@ class ControlRobot:
 
 if __name__ == "__main__":
     control_robot = ControlRobot()
-    control_robot.move_secuence("D2 R' D' F2 B D R2 D2 R' F2 D' F2 U' B2 L2 U2 D R2 U")
+    
+    control_robot.move_secuence("U R2 F L U D2 B B' D2 U' L' F' R2 U'")
     # print("Robot izquierda: ")
     # print(control_robot.left_arm.move_group.get_current_joint_values())
     # print("Robot derecha: ")
