@@ -1,4 +1,6 @@
 <?xml version="1.0"?>
 <launch>
   <include file="$(find ur3e_dual_205_206_moveit_config)/launch/ur3e_205_206_moveit_sim.launch"/>
+  <node name="robot_resolutor_publisher" pkg="nodo_resolutor" type="main.py"/>
+  <node name="robot_resolutor_subscriber" pkg="nodo_resolutor" type="main2.py"/>
 </launch>
