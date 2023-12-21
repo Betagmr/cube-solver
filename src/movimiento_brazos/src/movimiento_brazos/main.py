@@ -11,7 +11,7 @@ from robot_arm import RobotArm
 
 
 class ControlRobot:
-    def __init__(self) -> None:
+    def __init__(self, vel: float=0.1) -> None:
         rospy.init_node("robot_controller", anonymous=True)
         rospy.sleep(2)
 
@@ -27,6 +27,12 @@ class ControlRobot:
         self.pose_suelo.header.frame_id = self.robot_commander.get_planning_frame()
         self.pose_suelo.pose.position.z = -0.011
         self.planning_scene.add_box("suelo", self.pose_suelo, (3, 3, 0.02))
+
+        self.left_arm.move_group.set_max_acceleration_scaling_factor(vel if vel <=1.0 and vel >=0.0 else 0.1)
+        self.left_arm.move_group.set_max_velocity_scaling_factor(vel if vel <=1.0 and vel >=0.0 else 0.1)
+
+        self.right_arm.move_group.set_max_acceleration_scaling_factor(vel if vel <=1.0 and vel >=0.0 else 0.1)
+        self.right_arm.move_group.set_max_velocity_scaling_factor(vel if vel <=1.0 and vel >=0.0 else 0.1)
 
     def recoger_cubo(self):
         self.left_arm.execute_secuence(
@@ -144,8 +150,8 @@ class ControlRobot:
 
                 if position_index != actual_pos:
                     self.mover_abajo()
-                    rotacion = position_index - actual_pos
-                    rotacion = -rotacion if rotacion > 0 else rotacion 
+                    result = (position_index - actual_pos) % 4
+                    rotacion = 1 if result == 3 else -result 
 
                     angulo = rotacion * orientacion * pi / 2
                     self.rotar_caras(angulo, 5)
@@ -178,7 +184,7 @@ class ControlRobot:
                 print(self.left_arm.move_group.get_current_joint_values())
 
 if __name__ == "__main__":
-    control_robot = ControlRobot()
+    control_robot = ControlRobot(1.0)
     
     control_robot.move_secuence("U R2 F L U D2 B B' D2 U' L' F' R2 U'")
     # print("Robot izquierda: ")
