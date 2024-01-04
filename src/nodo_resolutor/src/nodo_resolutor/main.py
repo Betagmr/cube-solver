@@ -1,15 +1,30 @@
 #!/usr/bin/env python 
 
 import rospy
+import kociemba
 from std_msgs.msg import String
 
-rospy.init_node('nodo_publicador')
+rospy.init_node("primer_subscriber", anonymous=True)
 
-pub = rospy.Publisher('/mi_topico', String, queue_size=10)
+pub = rospy.Publisher('/cube_solved', String, queue_size=10)
 
-rate = rospy.Rate(1)  # Publicar a una velocidad de 1 Hz
+def recibir_mensajes(data: String) -> None:
+    cube_string = data.data 
+    try:
+        solution = kociemba.solve(cube_string)
+    except ValueError:
+        solution = None 
 
-while not rospy.is_shutdown():
-    mensaje = "Hola desde el nodo publicador"
-    pub.publish(mensaje)
-    rate.sleep()
+    print("Cubo recibido:", cube_string) 
+    print("La solución es:", solution)
+
+    is_valid = solution is not None
+
+    if rospy.is_shutdown() == False and is_valid:
+        pub.publish(solution)
+    else:
+        pub.publish("BAD CONFIG")
+
+rospy.Subscriber("/cube_unsolved", String, recibir_mensajes)
+
+rospy.spin()
