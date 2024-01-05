@@ -28,7 +28,7 @@ class CubeSolverServer:
         if not rospy.is_shutdown() and is_valid:
             self.publisher.publish(solution)
         else:
-            self.publish("BAD CONFIG")
+            self.publisher.publish("BAD CONFIG")
 
 
 if __name__ == "__main__":
