@@ -18,6 +18,10 @@ RUN apt install python3-catkin-tools -y
 RUN apt install libxmlrpc-core-c3-dev -y
 
 RUN mkdir -p /home/ubuntu/workspaces/catkin_ws/src
+RUN pip install kociemba
+RUN pip install steramlit
+RUN pip install fastapi
+RUN pip install uvicorn
 RUN pip install numpy
 RUN pip install -U catkin_tools
 RUN pip install ur_rtde
