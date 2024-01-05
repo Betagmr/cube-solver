@@ -35,14 +35,7 @@ class ControlRobot:
         self.right_arm.move_group.set_max_velocity_scaling_factor(vel if vel <=1.0 and vel >=0.0 else 0.1)
 
     def recoger_cubo(self):
-        self.left_arm.execute_secuence(
-            [
-                *positions.SOLTAR_RAPIDO_FLOJO,
-                positions.I_RECOGER_P1,
-                positions.I_RECOGER_P2,
-                *positions.AGARRE_RAPIDO_FUERTE,
-            ]
-        )
+        self.left_arm.execute_secuence(positions.APROXIMAR_CUBO)
 
         new_pose = self.pose_suelo
         new_pose.pose.position.x = 0.35
@@ -53,47 +46,19 @@ class ControlRobot:
         touch_links = self.robot_commander.get_link_names(group="gripper_205")
         self.planning_scene.attach_box("tool0_205", "cubo", touch_links=touch_links)
 
-        self.left_arm.execute_secuence(
-            [
-                positions.I_RECOGER_P1,
-                positions.I_RECOGER_P3,
-                positions.I_RECOGER_P4,
-            ]
-        )
+        self.left_arm.execute_secuence(positions.COLOCAR_CUBO)
 
     def mover_abajo(self):
-        self.right_arm.execute_secuence(
-            [
-                positions.D_REPOSO,
-                positions.D_INFERIOR_APROXIMACION,
-                positions.D_INFERIOR_AGARRE
-            ]
-        )
+        self.right_arm.execute_secuence(positions.MOVER_ABAJO)
 
     def volver_abajo(self):
-        self.right_arm.execute_secuence(
-            [
-                positions.D_INFERIOR_APROXIMACION,
-                positions.D_REPOSO,
-            ]
-        )
+        self.right_arm.execute_secuence(positions.VOLVER_ABAJO)
 
     def mover_arriba(self):
-        self.right_arm.execute_secuence(
-            [
-                positions.D_REPOSO,
-                positions.D_SUPERIOR_APROXIMACION,
-                positions.D_SUPERIOR_AGARRE,
-            ]
-        )
+        self.right_arm.execute_secuence(positions.MOVER_ARRIBA)
 
     def volver_arriba(self):
-        self.right_arm.execute_secuence(
-            [
-                positions.D_SUPERIOR_APROXIMACION,
-                positions.D_REPOSO,
-            ]
-        )
+        self.right_arm.execute_secuence(positions.VOLVER_ARRIBA)
 
 
     def hacer_giro(self, is_inverted, is_double, ofset = 0):
@@ -102,7 +67,7 @@ class ControlRobot:
 
         self.right_arm.execute_secuence(
             [
-                *positions.AGGARE_SIN_COLISION,
+                *positions.AGARAR_SIN_COLISION,
                 [angulo + ofset],
                 *positions.SOLTAR_SIN_COLISION,
             ]
@@ -125,7 +90,7 @@ class ControlRobot:
         time.sleep(self.delay)
 
     def move_secuence(self, solve_path):
-        orientacion = 1
+        orientation = 1
         actual_pos = 0
 
         if (
@@ -153,7 +118,7 @@ class ControlRobot:
                     result = (position_index - actual_pos) % 4
                     rotacion = 1 if result == 3 else -result 
 
-                    angulo = rotacion * orientacion * pi / 2
+                    angulo = rotacion * orientation * pi / 2
                     self.rotar_caras(angulo, 5)
                     self.volver_abajo()
                     actual_pos = position_index
@@ -165,11 +130,11 @@ class ControlRobot:
             if position in ["D", "U"]:
                 position_index = 1 if ["D", "U"].index(position) == 0 else -1
 
-                if position_index != orientacion:
+                if position_index != orientation:
                     self.mover_arriba()
                     self.rotar_caras(pi, 5)
                     self.volver_arriba()
-                    orientacion = position_index
+                    orientation = position_index
 
                 self.mover_abajo()
                 self.hacer_giro(direction, is_double)
