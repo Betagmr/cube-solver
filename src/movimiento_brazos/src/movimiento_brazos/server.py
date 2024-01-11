@@ -13,6 +13,7 @@ class CubeSolverServer:
         self.publisher = rospy.Publisher('/cube_solved', String, queue_size=10)
         self.subscriber = rospy.Subscriber('/cube_unsolved', String, self.get_message_callback) 
         self.robot_controller = ControlRobot(1)
+        self.is_runing = False 
 
     def get_message_callback(self, message: String) -> None:
         self.robot_controller.move_secuence(message.data)     

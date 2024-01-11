@@ -20,51 +20,26 @@ def deteccion_caras(imagenes):
  
 #Función que dada una imagen obtiene el cubo y sus cuadraditos, y muestra una imagen por panalla para controlar la detección.
 def preparar_imagen(image):
+    return np.array([
+            image[i * 23 + 5 : i * 23 +27, j * 23 + 5: j * 23 + 27]
+            for i in range(3)
+            for j in range(3)
+        ])
+
+def recortar_cubo(image):
     #Recortar el cubo.
     x1,y1=(305,155)
     x2,y2=(385,235)
     img_recortada=image[y1:y2,x1:x2]
- 
-    #Mostramos una imagen de los cuadraditos de la cara.
-    fig, axs = plt.subplots(nrows=3, ncols=3, figsize=(10, 10))
-    #Pasar a array 1-d para facilitar el acceso a los ejes
-    axs = axs.flatten()
- 
-    #Pasamos la imagen a RGB.
-    image_rgb = cv2.cvtColor(img_recortada, cv2.COLOR_BGR2RGB) 
- 
-    #Obtenemos los 9 cuadrados en un array llamado cuadraditos.
-    cuadraditos=[]
-    aux=0
-    y=0
-    for i in range(0,3):
-        x=0
-        for j in range(0,3):
-            #Obtenemos el cuadrado.
-            cuadrado=image_rgb[y+5:y+27,x+5:x+27]
-            #Añadirlo al array.
-            cuadraditos.append(cuadrado)
- 
-            #Añadimos la imagen.
-            axs[aux].imshow(cuadrado)
-            aux+=1
-            x+=23
-        y+=23
- 
-    #Ponemos título a la imagen y la mostramos.
-    fig.suptitle('Cuadraditos de la cara', fontsize=18)
-    plt.show()
- 
-    #Devolvemos la lista de cuadraditos de la cara.
-    return cuadraditos
+    return img_recortada
  
 #Función que dada la lista de cuadraditos de la cara, obtiene sus colores.
-def obtener_colores(cuadraditos):
+def obtener_colores(squares):
     #Creamos un array para almacenar los colores.
     colores=[]
  
     #Para cada cuadrado, obtenemos su color.
-    for c in cuadraditos:
+    for c in squares:
         #Usamos un píxel de color.
         color=c[10,10]
         #Obtenemos el color.
@@ -76,9 +51,6 @@ def obtener_colores(cuadraditos):
  
         #Añadimos el color al array.
         colores.append(nombre_color)
- 
-        print('Color: ', nombre_color)
- 
     #Devolvemos la lista de colores de la cara.
     return colores
  
@@ -194,7 +166,7 @@ imagen_cuadrado=cv2.rectangle(imagenes, (530, 365), (437, 460), (0,255,0), 2)
 cv2.imshow('Ventana', imagen_cuadrado)
 cv2.waitKey(0)'''
  
-imagenes = obtener_fotos()
-resultado = deteccion_caras(imagenes)
+# imagenes = obtener_fotos()
+# resultado = deteccion_caras(imagenes)
 
-print('RESULTADO FINAL: ',resultado)
+# print('RESULTADO FINAL: ',resultado)
