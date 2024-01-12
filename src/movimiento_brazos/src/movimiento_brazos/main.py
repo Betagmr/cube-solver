@@ -25,6 +25,7 @@ class ControlRobot:
         self.pose_suelo = PoseStamped()
         self.pose_suelo.header.frame_id = self.robot_commander.get_planning_frame()
         self.pose_suelo.pose.position.z = -0.011
+        self.planning_scene.remove_world_object("cubo")
         self.planning_scene.add_box("suelo", self.pose_suelo, (3, 3, 0.02))
 
         self.left_arm.move_group.set_max_acceleration_scaling_factor(vel if vel <=1.0 and vel >=0.0 else 0.1)
@@ -46,6 +47,13 @@ class ControlRobot:
         self.planning_scene.attach_box("tool0_205", "cubo", touch_links=touch_links)
 
         self.left_arm.execute_secuence(positions.COLOCAR_CUBO)
+
+    def dejar_cubo(self):
+        self.left_arm.execute_secuence(positions.COLOCAR_CUBO[::-1])
+        self.planning_scene.remove_attached_object("cubo")
+        self.planning_scene.remove_world_object("cubo")
+        self.left_arm.execute_secuence(positions.APROXIMAR_CUBO[::-1])
+
 
     def mover_abajo(self):
         self.right_arm.execute_secuence(positions.MOVER_ABAJO)
@@ -108,6 +116,9 @@ class ControlRobot:
             is_double = index.find("2") > -1
 
             print(f"{position=} {direction=} {is_double=}")
+
+            if position == "x":
+                self.dejar_cubo()
 
             if position in ["L", "F", "R", "B"]:
                 position_index = ["L", "F", "R", "B"].index(position)

@@ -20,8 +20,11 @@ class ArmServer:
         self.publisher.publish("Secuencia ejecutada")
 
 if __name__ == "__main__":
-    try:
-        node = ArmServer()
-        rospy.spin()
-    except rospy.ROSInterruptException:
-        pass
+    node = ArmServer()
+    rospy.spin()
+
+    # try:
+    #     node = ArmServer()
+    #     rospy.spin()
+    # except rospy.ROSInterruptException:
+    #     pass

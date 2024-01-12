@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+  <include file="$(find launcher_robots_lab_robotica)/launch/robot_205_206.launch"/>
+  <node name="robot_resolutor_publisher" pkg="nodo_resolutor" type="main.py"/>
+  <node name="robot_server_controller" pkg="movimiento_brazos" type="server.py"/>
+  <!-- <node pkg="aliencontrol" type="aliencontrol" name="aliencontrol_top">
+    <param name="cmd" value="'cd $(find app)/src ; uvicorn backend:app host 10.172.21.23'"/>
+  </node> -->
+</launch>
+
