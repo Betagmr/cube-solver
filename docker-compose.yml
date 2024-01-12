@@ -14,15 +14,15 @@ services:
       - ./src:/home/ubuntu/workspaces/catkin_ws/src
       - ./.vscode:/home/ubuntu/workspaces/catkin_ws/.vscode
       - /tmp/.X11-unix:/tmp/.X11-unix
-      # - $XAUTHORITY:/root/.Xauthority
+      - $XAUTHORITY:/root/.Xauthority
       - /dev:/dev
     network_mode: host
     ports:
       - "8501:8501" 
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]

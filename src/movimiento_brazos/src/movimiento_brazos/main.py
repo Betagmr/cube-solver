@@ -12,7 +12,6 @@ from robot_arm import RobotArm
 
 class ControlRobot:
     def __init__(self, vel: float=0.1) -> None:
-        rospy.init_node("robot_controller", anonymous=True)
         rospy.sleep(2)
 
         self.delay = 1
